@@ -75,6 +75,8 @@ resource "aws_kms_key" "main" {
       }
     ]
   })
+
+  tags = { Name = "${each.key}-kms-key" }
 }
 
 resource "aws_kms_alias" "main" {

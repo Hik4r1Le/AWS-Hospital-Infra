@@ -21,7 +21,7 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "main_hospital" {
 }
 
 resource "aws_ec2_transit_gateway_vpc_attachment" "satellite_clinic" {
-  subnet_ids         = var.main_hospital_subnet_ids
+  subnet_ids         = var.satellite_clinic_subnet_ids
   transit_gateway_id = aws_ec2_transit_gateway.main.id
   vpc_id             = var.satellite_clinic_vpc_id
 

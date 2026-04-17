@@ -46,3 +46,17 @@ module "nat_gateway" {
 
   tags = local.common_tags
 }
+
+module "security_groups" {
+  source = "./modules/security_groups"
+
+  main_vpc_id = module.vpc.main_vpc_id
+
+  vpn_client_cidr      = "192.168.100.0/22"
+  staff_main_cidr      = "10.0.20.0/24"
+  staff_satellite_cidr = "10.1.10.0/24"
+  patient_cidr         = "10.0.30.0/24"
+  iot_cidr             = "10.0.40.0/24"
+
+  tags = local.common_tags
+}

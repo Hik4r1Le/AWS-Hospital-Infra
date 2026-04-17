@@ -1,0 +1,8 @@
+# Terraform state files - quản lý qua S3 backend
+*.tfstate
+*.tfstate.*
+.terraform.tfstate.lock.info
+
+# Thư mục Terraform local
+.terraform/
+.terraform.lock.hcl

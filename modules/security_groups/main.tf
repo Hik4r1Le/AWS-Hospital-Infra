@@ -1,6 +1,10 @@
+#################################################
+# SECURITY GROUPS
+#################################################
+
 resource "aws_security_group" "alb_internal" {
   name        = "sg-alb-internal"
-  description = "Internal ALB SG"
+  description = "Internal ALB Security Group"
   vpc_id      = var.main_vpc_id
 
   tags = merge(var.tags, {
@@ -10,7 +14,7 @@ resource "aws_security_group" "alb_internal" {
 
 resource "aws_security_group" "ec2_his" {
   name        = "sg-ec2-his"
-  description = "HIS EC2 App SG"
+  description = "HIS Application EC2 Security Group"
   vpc_id      = var.main_vpc_id
 
   tags = merge(var.tags, {
@@ -20,7 +24,7 @@ resource "aws_security_group" "ec2_his" {
 
 resource "aws_security_group" "rds" {
   name        = "sg-rds"
-  description = "RDS SG"
+  description = "RDS Database Security Group"
   vpc_id      = var.main_vpc_id
 
   tags = merge(var.tags, {
@@ -29,8 +33,9 @@ resource "aws_security_group" "rds" {
 }
 
 resource "aws_security_group" "staff_workstation" {
-  name   = "sg-staff-workstation"
-  vpc_id = var.main_vpc_id
+  name        = "sg-staff-workstation"
+  description = "Staff Workstation Security Group"
+  vpc_id      = var.main_vpc_id
 
   tags = merge(var.tags, {
     Name = "sg-staff-workstation"
@@ -38,8 +43,9 @@ resource "aws_security_group" "staff_workstation" {
 }
 
 resource "aws_security_group" "iot_main" {
-  name   = "sg-iot-main"
-  vpc_id = var.main_vpc_id
+  name        = "sg-iot-main"
+  description = "IoT Devices Security Group"
+  vpc_id      = var.main_vpc_id
 
   tags = merge(var.tags, {
     Name = "sg-iot-main"
@@ -47,154 +53,163 @@ resource "aws_security_group" "iot_main" {
 }
 
 resource "aws_security_group" "patient_wifi" {
-  name   = "sg-patient-wifi"
-  vpc_id = var.main_vpc_id
+  name        = "sg-patient-wifi"
+  description = "Patient WiFi Security Group"
+  vpc_id      = var.main_vpc_id
 
   tags = merge(var.tags, {
     Name = "sg-patient-wifi"
   })
 }
 
-resource "aws_security_group_rule" "alb_from_staff_main" {
-  type              = "ingress"
+#################################################
+# ALB INTERNAL RULES
+#################################################
+
+resource "aws_vpc_security_group_ingress_rule" "alb_from_staff_main" {
   security_group_id = aws_security_group.alb_internal.id
-  protocol          = "tcp"
+  cidr_ipv4         = var.staff_main_cidr
   from_port         = 443
   to_port           = 443
-  cidr_blocks       = [var.staff_main_cidr]
+  ip_protocol       = "tcp"
 }
 
-resource "aws_security_group_rule" "alb_from_staff_satellite" {
-  type              = "ingress"
+resource "aws_vpc_security_group_ingress_rule" "alb_from_staff_satellite" {
   security_group_id = aws_security_group.alb_internal.id
-  protocol          = "tcp"
+  cidr_ipv4         = var.staff_satellite_cidr
   from_port         = 443
   to_port           = 443
-  cidr_blocks       = [var.staff_satellite_cidr]
+  ip_protocol       = "tcp"
 }
 
-resource "aws_security_group_rule" "alb_from_vpn" {
-  type              = "ingress"
+resource "aws_vpc_security_group_ingress_rule" "alb_from_vpn" {
   security_group_id = aws_security_group.alb_internal.id
-  protocol          = "tcp"
+  cidr_ipv4         = var.vpn_client_cidr
   from_port         = 443
   to_port           = 443
-  cidr_blocks       = [var.vpn_client_cidr]
+  ip_protocol       = "tcp"
 }
 
-resource "aws_security_group_rule" "alb_to_ec2" {
-  type                     = "egress"
-  security_group_id        = aws_security_group.alb_internal.id
-  protocol                 = "tcp"
-  from_port                = 8080
-  to_port                  = 8080
-  source_security_group_id = aws_security_group.ec2_his.id
+resource "aws_vpc_security_group_egress_rule" "alb_to_ec2" {
+  security_group_id            = aws_security_group.alb_internal.id
+  referenced_security_group_id = aws_security_group.ec2_his.id
+  from_port                    = 8080
+  to_port                      = 8080
+  ip_protocol                  = "tcp"
 }
 
-resource "aws_security_group_rule" "ec2_from_alb" {
-  type                     = "ingress"
-  security_group_id        = aws_security_group.ec2_his.id
-  protocol                 = "tcp"
-  from_port                = 8080
-  to_port                  = 8080
-  source_security_group_id = aws_security_group.alb_internal.id
+#################################################
+# EC2 HIS RULES
+#################################################
+
+resource "aws_vpc_security_group_ingress_rule" "ec2_from_alb" {
+  security_group_id            = aws_security_group.ec2_his.id
+  referenced_security_group_id = aws_security_group.alb_internal.id
+  from_port                    = 8080
+  to_port                      = 8080
+  ip_protocol                  = "tcp"
 }
 
-resource "aws_security_group_rule" "ec2_to_rds_mysql" {
-  type                     = "egress"
-  security_group_id        = aws_security_group.ec2_his.id
-  protocol                 = "tcp"
-  from_port                = 3306
-  to_port                  = 3306
-  source_security_group_id = aws_security_group.rds.id
+resource "aws_vpc_security_group_egress_rule" "ec2_to_rds_mysql" {
+  security_group_id            = aws_security_group.ec2_his.id
+  referenced_security_group_id = aws_security_group.rds.id
+  from_port                    = 3306
+  to_port                      = 3306
+  ip_protocol                  = "tcp"
 }
 
-resource "aws_security_group_rule" "ec2_to_rds_pg" {
-  type                     = "egress"
-  security_group_id        = aws_security_group.ec2_his.id
-  protocol                 = "tcp"
-  from_port                = 5432
-  to_port                  = 5432
-  source_security_group_id = aws_security_group.rds.id
+resource "aws_vpc_security_group_egress_rule" "ec2_to_rds_pg" {
+  security_group_id            = aws_security_group.ec2_his.id
+  referenced_security_group_id = aws_security_group.rds.id
+  from_port                    = 5432
+  to_port                      = 5432
+  ip_protocol                  = "tcp"
 }
 
-resource "aws_security_group_rule" "ec2_https_out" {
-  type              = "egress"
+resource "aws_vpc_security_group_egress_rule" "ec2_https_out" {
   security_group_id = aws_security_group.ec2_his.id
-  protocol          = "tcp"
+  cidr_ipv4         = "0.0.0.0/0"
   from_port         = 443
   to_port           = 443
-  cidr_blocks       = ["0.0.0.0/0"]
+  ip_protocol       = "tcp"
 }
 
-resource "aws_security_group_rule" "rds_from_ec2_mysql" {
-  type                     = "ingress"
-  security_group_id        = aws_security_group.rds.id
-  protocol                 = "tcp"
-  from_port                = 3306
-  to_port                  = 3306
-  source_security_group_id = aws_security_group.ec2_his.id
+#################################################
+# RDS RULES
+#################################################
+
+resource "aws_vpc_security_group_ingress_rule" "rds_from_ec2_mysql" {
+  security_group_id            = aws_security_group.rds.id
+  referenced_security_group_id = aws_security_group.ec2_his.id
+  from_port                    = 3306
+  to_port                      = 3306
+  ip_protocol                  = "tcp"
 }
 
-resource "aws_security_group_rule" "rds_from_ec2_pg" {
-  type                     = "ingress"
-  security_group_id        = aws_security_group.rds.id
-  protocol                 = "tcp"
-  from_port                = 5432
-  to_port                  = 5432
-  source_security_group_id = aws_security_group.ec2_his.id
+resource "aws_vpc_security_group_ingress_rule" "rds_from_ec2_pg" {
+  security_group_id            = aws_security_group.rds.id
+  referenced_security_group_id = aws_security_group.ec2_his.id
+  from_port                    = 5432
+  to_port                      = 5432
+  ip_protocol                  = "tcp"
 }
 
-resource "aws_security_group_rule" "staff_to_alb" {
-  type                     = "egress"
-  security_group_id        = aws_security_group.staff_workstation.id
-  protocol                 = "tcp"
-  from_port                = 443
-  to_port                  = 443
-  source_security_group_id = aws_security_group.alb_internal.id
+#################################################
+# STAFF WORKSTATION RULES
+#################################################
+
+resource "aws_vpc_security_group_egress_rule" "staff_to_alb" {
+  security_group_id            = aws_security_group.staff_workstation.id
+  referenced_security_group_id = aws_security_group.alb_internal.id
+  from_port                    = 443
+  to_port                      = 443
+  ip_protocol                  = "tcp"
 }
 
-resource "aws_security_group_rule" "staff_https" {
-  type              = "egress"
+resource "aws_vpc_security_group_egress_rule" "staff_https" {
   security_group_id = aws_security_group.staff_workstation.id
-  protocol          = "tcp"
+  cidr_ipv4         = "0.0.0.0/0"
   from_port         = 443
   to_port           = 443
-  cidr_blocks       = ["0.0.0.0/0"]
+  ip_protocol       = "tcp"
 }
 
-resource "aws_security_group_rule" "staff_http" {
-  type              = "egress"
+resource "aws_vpc_security_group_egress_rule" "staff_http" {
   security_group_id = aws_security_group.staff_workstation.id
-  protocol          = "tcp"
+  cidr_ipv4         = "0.0.0.0/0"
   from_port         = 80
   to_port           = 80
-  cidr_blocks       = ["0.0.0.0/0"]
+  ip_protocol       = "tcp"
 }
 
-resource "aws_security_group_rule" "iot_https" {
-  type              = "egress"
+#################################################
+# IOT RULES
+#################################################
+
+resource "aws_vpc_security_group_egress_rule" "iot_https" {
   security_group_id = aws_security_group.iot_main.id
-  protocol          = "tcp"
+  cidr_ipv4         = "0.0.0.0/0"
   from_port         = 443
   to_port           = 443
-  cidr_blocks       = ["0.0.0.0/0"]
+  ip_protocol       = "tcp"
 }
 
-resource "aws_security_group_rule" "patient_https" {
-  type              = "egress"
+#################################################
+# PATIENT WIFI RULES
+#################################################
+
+resource "aws_vpc_security_group_egress_rule" "patient_https" {
   security_group_id = aws_security_group.patient_wifi.id
-  protocol          = "tcp"
+  cidr_ipv4         = "0.0.0.0/0"
   from_port         = 443
   to_port           = 443
-  cidr_blocks       = ["0.0.0.0/0"]
+  ip_protocol       = "tcp"
 }
 
-resource "aws_security_group_rule" "patient_http" {
-  type              = "egress"
+resource "aws_vpc_security_group_egress_rule" "patient_http" {
   security_group_id = aws_security_group.patient_wifi.id
-  protocol          = "tcp"
+  cidr_ipv4         = "0.0.0.0/0"
   from_port         = 80
   to_port           = 80
-  cidr_blocks       = ["0.0.0.0/0"]
+  ip_protocol       = "tcp"
 }

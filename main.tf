@@ -127,3 +127,20 @@ module "vpc_flow_logs" {
 
   tags = local.common_tags
 }
+
+module "cloudwatch" {
+  source = "./modules/cloudwatch"
+
+  alb_arn_suffix = module.alb.alb_arn_suffix
+
+  ec2_his_az1_id = module.ec2.ec2_his_az1_id
+  ec2_his_az2_id = module.ec2.ec2_his_az2_id
+
+  rds_instance_id = module.rds.rds_instance_id
+
+  vpn_endpoint_id = module.client_vpn.vpn_endpoint_id
+
+  sns_alarm_email = "youremail@gmail.com"
+
+  tags = local.common_tags
+}

@@ -96,3 +96,34 @@ module "nacl" {
 
   tags = local.common_tags
 }
+
+module "ec2" {
+  source = "./modules/ec2"
+
+  instance_type = "t3.small"
+
+  private_clinical_az1_id = module.subnets.private_clinical_az1_id
+  private_clinical_az2_id = module.subnets.private_clinical_az2_id
+
+  sg_ec2_his_id = module.security_groups.sg_ec2_his_id
+
+  iam_instance_profile_name = module.iam.role_ec2_his_profile_name
+
+  kms_ebs_key_arn = module.kms.ebs_key_arn
+
+  tags = local.common_tags
+}
+
+module "vpc_flow_logs" {
+  source = "./modules/vpc_flow_logs"
+
+  main_vpc_id      = module.vpc.main_vpc_id
+  satellite_vpc_id = module.vpc.satellite_vpc_id
+
+  flow_logs_role_arn = module.iam.role_vpc_flow_logs_arn
+
+  main_log_group_name      = "/aws/vpc/main-hospital-flowlogs"
+  satellite_log_group_name = "/aws/vpc/satellite-flowlogs"
+
+  tags = local.common_tags
+}

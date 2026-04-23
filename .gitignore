@@ -6,3 +6,5 @@
 # Thư mục Terraform local
 .terraform/
 .terraform.lock.hcl
+
+cert/

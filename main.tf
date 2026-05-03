@@ -144,3 +144,63 @@ module "cloudwatch" {
 
   tags = local.common_tags
 }
+module "s3" {
+  source = "./modules/s3"
+
+  kms_s3_key_arn = module.kms.s3_key_arn
+
+  tags = local.common_tags
+}
+
+module "vpc_endpoints" {
+  source = "./modules/vpc_endpoints"
+
+  main_vpc_id = module.vpc.main_vpc_id
+
+  s3_gateway_route_table_ids = [
+    module.route_tables.rt_clinical_az1_id,
+    module.route_tables.rt_clinical_az2_id,
+    module.route_tables.rt_private_az1_id,
+  ]
+
+  ssm_subnet_ids = [
+    module.subnets.private_clinical_az1_id,
+    module.subnets.private_clinical_az2_id,
+  ]
+
+  sg_vpce_ssm_id = module.security_groups.sg_vpce_ssm_id
+
+  tags = local.common_tags
+}
+
+module "guardduty" {
+  source = "./modules/guardduty"
+
+  cloudtrail_bucket_arn = module.s3.cloudtrail_bucket_arn
+  kms_s3_key_arn        = module.kms.s3_key_arn
+
+  tags = local.common_tags
+}
+
+module "route53" {
+  source = "./modules/route53"
+
+  main_vpc_id         = module.vpc.main_vpc_id
+  private_domain_name = "hospital.internal"
+
+  alb_dns_name = module.alb.alb_dns_name
+  alb_zone_id  = module.alb.alb_zone_id
+  rds_endpoint = module.rds.rds_endpoint
+
+  tags = local.common_tags
+}
+
+module "cloudtrail" {
+  source = "./modules/cloudtrail"
+
+  cloudtrail_bucket_id     = module.s3.cloudtrail_bucket_id
+  cloudtrail_log_group_arn = module.cloudwatch.cloudtrail_log_group_arn
+  kms_s3_key_arn           = module.kms.s3_key_arn
+
+  tags = local.common_tags
+}

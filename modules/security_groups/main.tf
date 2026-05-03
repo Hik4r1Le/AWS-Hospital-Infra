@@ -213,3 +213,27 @@ resource "aws_vpc_security_group_egress_rule" "patient_http" {
   to_port           = 80
   ip_protocol       = "tcp"
 }
+
+#################################################
+# VPC ENDPOINT — SSM/SSMMessages/EC2Messages
+# Allow HTTPS:443 inbound từ EC2 HIS instances
+#################################################
+
+resource "aws_security_group" "vpce_ssm" {
+  name        = "sg-vpce-ssm"
+  description = "Allow EC2 instances to reach SSM Interface Endpoints"
+  vpc_id      = var.main_vpc_id
+
+  tags = merge(var.tags, {
+    Name = "sg-vpce-ssm"
+  })
+}
+
+resource "aws_vpc_security_group_ingress_rule" "vpce_ssm_from_ec2" {
+  security_group_id            = aws_security_group.vpce_ssm.id
+  referenced_security_group_id = aws_security_group.ec2_his.id
+  from_port                    = 443
+  to_port                      = 443
+  ip_protocol                  = "tcp"
+  description                  = "HTTPS from EC2 HIS"
+}

@@ -21,3 +21,6 @@ output "sg_iot_main_id" {
 output "sg_patient_wifi_id" {
   value = aws_security_group.patient_wifi.id
 }
+output "sg_vpce_ssm_id" {
+  value = aws_security_group.vpce_ssm.id
+}
